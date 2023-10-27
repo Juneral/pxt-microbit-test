@@ -17,7 +17,7 @@ enum Offset {
 }
 
 //% color="#EE6A50" weight=10 icon="\uf013"
-namespace magicbit {
+namespace microbit_test {
     const PCA9685_ADDRESS = 0x40
     const MODE1 = 0x00
     const MODE2 = 0x01

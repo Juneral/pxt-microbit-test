@@ -1,7 +1,7 @@
 {
-    "name": "JunBit",
-    "version": "0.0.1",
-    "description": "Extension for JunBit",
+    "name": "robotbit",
+    "version": "0.4.6",
+    "description": "Extension for Kittenbot Robotbit",
     "license": "MIT",
     "dependencies": {
         "core": "*",
@@ -13,6 +13,7 @@
         "README.md",
         "main.ts",
         "_locales/zh-cn/robotbit-strings.json",
+        "_locales/zh-tw/robotbit-strings.json"
     ],
     "testFiles": [
         "test.ts"

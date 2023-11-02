@@ -1,7 +1,7 @@
 {
-    "name": "robotbit",
-    "version": "0.4.6",
-    "description": "Extension for Kittenbot Robotbit",
+    "name": "Microbit-Shield",
+    "version": "0.0.1",
+    "description": "Extension for Microbit Shield",
     "license": "MIT",
     "dependencies": {
         "core": "*",
@@ -12,8 +12,7 @@
     "files": [
         "README.md",
         "main.ts",
-        "_locales/zh-cn/robotbit-strings.json",
-        "_locales/zh-tw/robotbit-strings.json"
+        "_locales/zh-cn/robotbit-strings.json"
     ],
     "testFiles": [
         "test.ts"

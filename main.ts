@@ -6,7 +6,7 @@ namespace JunBit {
     //% block="ON"
     ON = 1,
     //% block="OFF"
-    OFF = 0,
+    OFF = 0
 }
   //% blockId=SetLed block="LED at %pin| is %status"   group="LED"
   //% weight=70

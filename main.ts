@@ -2,7 +2,7 @@
 //% color="#31C7D5" weight=10 icon="\uf1d0"
 namespace JunBit {
 
-  enum LED {
+  export enum LED {
     //% block="ON"
     ON = 1,
     //% block="OFF"

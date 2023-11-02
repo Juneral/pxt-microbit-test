@@ -1,6 +1,6 @@
 {
-    "LED.ON|block": "开",
-    "LED.OFF|block": "关",
+    "JunBit.LED.ON|block": "开",
+    "JunBit.LED.OFF|block": "关",
     "JunBit.SetLed|block": "LED接管脚 %pin|设为 %status",
 
     "{id:group}Dispaly": "显示类"

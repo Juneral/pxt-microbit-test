@@ -1,22 +1,30 @@
 {
-    "name": "microbit_test",
-    "version": "1.0.0",
-    "description": "Emakefun magicbit expansion board",
+    "name": "robotbit",
+    "version": "0.4.6",
+    "description": "Extension for Kittenbot Robotbit",
     "license": "MIT",
     "dependencies": {
         "core": "*",
-        "Sensorbit": "github:emakefun/pxt-sensorbit"
-        
+        "neopixel": "github:kittenbot/pxt-neopixel",
+        "SensorPlus": "github:kittenbothk/pxt-moduleplus",
+        "microphone": "*"
     },
     "files": [
         "README.md",
         "main.ts",
-        "shims.d.ts",       
-        "_locales/zh/magicbit-strings.json"
+        "_locales/zh-cn/robotbit-strings.json",
+        "_locales/zh-tw/robotbit-strings.json"
     ],
     "testFiles": [
         "test.ts"
     ],
     "public": true,
+    "targetVersions": {
+        "target": "6.0.18",
+        "targetId": "microbit"
+    },
+    "supportedTargets": [
+        "microbit"
+    ],
     "preferredEditor": "tsprj"
 }

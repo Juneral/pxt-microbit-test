@@ -1,39 +1,33 @@
-# MagicBit
-[中文版](README_zh.md)
+# robotbit
 
-[Emakefun](www.emakefun.com) magicbit expansion board for micro:bit
-![image](icon.png)
+Extension for Kittenbot Robotbit
 
 ## Feature
 
 - Designed for robotic projects over microbit
-- On board battery source with usb charger
+- On board battery source
 - Drive 8x servos and 4x DC motors and the same time (with 3.7v battery source to VM)
 - Drive 2x Micro Stepper Motors
 - On board buzzer
 - On board 4x RGB Neo Pixels
-- On board ir receiver
-- 2xPH2.0-4Pin for i2c port and rgbultrasonic
-- 4xPH2.0-2Pin for DC motors
 
-## Hardware Preview
-### Front
-![image](https://github.com/emakefun/emakefun-docs/blob/master/docs/micro_bit/magic_bit/magicbit_hardware_front_zh.png)
+# Blocks Preview
+![image](https://user-images.githubusercontent.com/3390845/34512193-b3e0ffdc-f09b-11e7-839f-0c9c3563ac94.png)
 
-### Back
-![image](https://github.com/emakefun/emakefun-docs/blob/master/docs/micro_bit/magic_bit/magicbit_hardware_back1_zh.png)
+# Hardware Preview
+## Front
+![image](https://user-images.githubusercontent.com/3390845/34511999-4b3fdef4-f09a-11e7-960e-5661268b0ba7.png)
 
-## Blocks Preview
-### magicbit blocks
-![image](https://github.com/emakefun/emakefun-docs/raw/master/docs/micro_bit/magic_bit/magicbit_block.png)
+## Back
+![image](https://user-images.githubusercontent.com/3390845/34512098-04fecc1a-f09b-11e7-9ec6-62fcc0780773.png)
 
-### on board rgb blocks
-add block link  https://github.com/microsoft/pxt-neopixel
-![image](https://github.com/emakefun/emakefun-docs/raw/master/docs/micro_bit/magic_bit/rgb_block.png)
-![image](https://github.com/emakefun/emakefun-docs/raw/master/docs/micro_bit/magic_bit/rgb_more_block.png)
 
+----------
+
+For more infomation please visit [http://kittenbot.cc/bbs/](http://kittenbot.cc/bbs/ "Kittenbot BBS")
 
 ## License
+
 MIT
 
 ## Supported targets
@@ -42,12 +36,5 @@ MIT
 (The metadata above is needed for package search.)
 
 ```package
-magicbit=github:emakefun/pxt-magicbit
+robotbit=github:Kittenbot/pxt-robotbit
 ```
-
-# Please Contact Us
-Technical support email: support@emakefun.com</br>
-Sales email: ken@emakefun.com</br>
-The latest information download address:https://github.com/emakefun/pxt-magicbit  </br>
-
-

@@ -1,23 +1,13 @@
 /*
-ken@emakefun.com
+Riven
 modified from pxt-servo/servodriver.ts
 load dependency
-"magicbit": "file:../pxt-magicbit"
+"robotbit": "file:../pxt-robotbit"
 */
 
-enum Offset {
-    //% block=one
-    ONE = 0,
-    //% block=two
-    TWO = 1,
-    //% block=three
-    THREE = 2,
-    //% block=four
-    FOUR = 3
-}
 
-//% color="#EE6A50" weight=10 icon="\uf013"
-namespace microbit_test {
+//% color="#31C7D5" weight=10 icon="\uf1d0"
+namespace robotbit {
     const PCA9685_ADDRESS = 0x40
     const MODE1 = 0x00
     const MODE2 = 0x01
@@ -46,6 +36,16 @@ namespace microbit_test {
     const STP_CHD_L = 3071
     const STP_CHD_H = 1023
 
+    // HT16K33 commands
+    const HT16K33_ADDRESS = 0x70
+    const HT16K33_BLINK_CMD = 0x80
+    const HT16K33_BLINK_DISPLAYON = 0x01
+    const HT16K33_BLINK_OFF = 0
+    const HT16K33_BLINK_2HZ = 1
+    const HT16K33_BLINK_1HZ = 2
+    const HT16K33_BLINK_HALFHZ = 3
+    const HT16K33_CMD_BRIGHTNESS = 0xE0
+
     export enum Servos {
         S1 = 0x01,
         S2 = 0x02,
@@ -58,15 +58,15 @@ namespace microbit_test {
     }
 
     export enum Motors {
-        M1 = 0x3,
-        M2 = 0x4,
-        M3 = 0x1,
-        M4 = 0x2
+        M1A = 0x1,
+        M1B = 0x2,
+        M2A = 0x3,
+        M2B = 0x4
     }
 
     export enum Steppers {
-        STPM1 = 0x2,
-        STPM2 = 0x1
+        M1 = 0x1,
+        M2 = 0x2
     }
 
     export enum SonarVersion {
@@ -91,7 +91,18 @@ namespace microbit_test {
         T5B0 = 1800
     }
 
+	export enum ValueUnit {
+        //% block="mm"
+        Millimeter,
+        //% block="cm"
+        Centimeters
+    }
+
     let initialized = false
+    let initializedMatrix = false
+    let neoStrip: neopixel.Strip;
+    let matBuf = pins.createBuffer(17);
+    let distanceBuf = 0;
 
     function i2cwrite(addr: number, reg: number, value: number) {
         let buf = pins.createBuffer(2)
@@ -187,13 +198,38 @@ namespace microbit_test {
         setPwm((index - 1) * 2 + 1, 0, 0);
     }
 
+    function matrixInit() {
+        i2ccmd(HT16K33_ADDRESS, 0x21);// turn on oscillator
+        i2ccmd(HT16K33_ADDRESS, HT16K33_BLINK_CMD | HT16K33_BLINK_DISPLAYON | (0 << 1));
+        i2ccmd(HT16K33_ADDRESS, HT16K33_CMD_BRIGHTNESS | 0xF);
+    }
+
+    function matrixShow() {
+        matBuf[0] = 0x00;
+        pins.i2cWriteBuffer(HT16K33_ADDRESS, matBuf);
+    }
+
+
+    /**
+     * Init RGB pixels mounted on robotbit
+     */
+    //% blockId="robotbit_rgb" block="RGB"
+    //% weight=70
+    export function rgb(): neopixel.Strip {
+        if (!neoStrip) {
+            neoStrip = neopixel.create(DigitalPin.P16, 4, NeoPixelMode.RGB)
+        }
+
+        return neoStrip;
+    }
+
     /**
      * Servo Execute
      * @param index Servo Channel; eg: S1
      * @param degree [0-180] degree of servo; eg: 0, 90, 180
     */
-    //% blockId=magicbit_servo block="Servo|%index|degree %degree"
-    //% weight=100
+    //% blockId=robotbit_servo block="Servo|%index|degree %degree"
+    //% group="Servo" weight=62
     //% degree.min=0 degree.max=180
     //% name.fieldEditor="gridpicker" name.fieldOptions.columns=4
     export function Servo(index: Servos, degree: number): void {
@@ -206,66 +242,90 @@ namespace microbit_test {
         setPwm(index + 7, 0, value)
     }
 
-   /**
-         * Servo Execute
-         * @param index Servo Channel; eg: S1
-         * @param degree1 [0-180] degree of servo; eg: 0, 90, 180
-	 * @param degree2 [0-180] degree of servo; eg: 0, 90, 180
-	 * @param speed [1-10] speed of servo; eg: 1, 10
+    /**
+     * Geek Servo
+     * @param index Servo Channel; eg: S1
+     * @param degree [-45-225] degree of servo; eg: -45, 90, 225
     */
-    //% blockId=motorbit_servospeed block="Servo|%index|degree start %degree1|end %degree2|speed %speed"
-    //% weight=98
-    //% degree1.min=0 degree1.max=180
-    //% degree2.min=0 degree2.max=180
-    //% speed.min=1 speed.max=10
-    //% inlineInputMode=inline
+    //% blockId=robotbit_gservo block="Geek Servo|%index|degree %degree"
+    ///% group="Servo" weight=61
+    //% degree.min=-45 degree.max=225
     //% name.fieldEditor="gridpicker" name.fieldOptions.columns=4
-    export function Servospeed(index: Servos, degree1: number, degree2: number, speed: number): void {
+    export function GeekServo(index: Servos, degree: number): void {
         if (!initialized) {
             initPCA9685()
         }
         // 50hz: 20,000 us
-        if(degree1 > degree2){
-            for(let i=degree1;i>degree2;i--){
-                let v_us = (i * 1800 / 180 + 600) // 0.6 ~ 2.4
-                let value = v_us * 4096 / 20000
-                basic.pause(4 * (10 - speed));
-                setPwm(index + 7, 0, value)
-            }
-        }
-        else{
-            for(let i=degree1;i<degree2;i++){
-                let v_us = (i * 1800 / 180 + 600) // 0.6 ~ 2.4
-                let value = v_us * 4096 / 20000
-                basic.pause(4 * (10 - speed));
-                setPwm(index + 7, 0, value)
-            }
-        }
+        let v_us = ((degree - 90) * 20 / 3 + 1500) // 0.6 ~ 2.4
+        let value = v_us * 4096 / 20000
+        setPwm(index + 7, 0, value)
     }
 
-
-//     /**
-//      * Geek Servo
-//      * @param index Servo Channel; eg: S1
-//      * @param degree [-45-225] degree of servo; eg: -45, 90, 225
-//     */
-//     //% blockId=magicbit_gservo block="Geek Servo|%index|degree %degree=protractorPicker"
-//     //% weight=96
-//     //% blockGap=50
-//     //% degree.defl=90
-//     //% name.fieldEditor="gridpicker" name.fieldOptions.columns=4
-//     export function GeekServo(index: Servos, degree: number): void {
-//         if (!initialized) {
-//             initPCA9685()
-//         }
-//         // 50hz: 20,000 us
-//         let v_us = ((degree - 90) * 20 / 3 + 1500) // 0.6 ~ 2.4
-//         let value = v_us * 4096 / 20000
-//         setPwm(index + 7, 0, value)
-//     }
+        /**
+     * GeekServo2KG
+     * @param index Servo Channel; eg: S1
+     * @param degree [0-360] degree of servo; eg: 0, 180, 360
+    */
+    //% blockId=robotbit_gservo2kg block="GeekServo2KG|%index|degree %degree"
+    //% group="Servo" weight=60
+    //% blockGap=50
+    //% degree.min=0 degree.max=360
+    //% name.fieldEditor="gridpicker" name.fieldOptions.columns=4
+    export function GeekServo2KG(index: Servos, degree: number): void {
+        if (!initialized) {
+            initPCA9685()
+        }
+        // 50hz: 20,000 us
+        //let v_us = (degree * 2000 / 360 + 500)  0.5 ~ 2.5
+        let v_us = (Math.floor((degree) * 2000 / 350) + 500) //fixed
+        let value = v_us * 4096 / 20000
+        setPwm(index + 7, 0, value)
+    }
 	
-    //% blockId=magicbit_stepper_degree block="Stepper 28BYJ-48|%index|degree %degree"
-    //% weight=90
+        /**
+     * GeekServo5KG
+     * @param index Servo Channel; eg: S1
+     * @param degree [0-360] degree of servo; eg: 0, 180, 360
+    */
+    //% blockId=robotbit_gservo5kg block="GeekServo5KG|%index|degree %degree"
+    //% group="Servo" weight=59
+    //% degree.min=0 degree.max=360
+    //% name.fieldEditor="gridpicker" name.fieldOptions.columns=4
+    export function GeekServo5KG(index: Servos, degree: number): void {
+        if (!initialized) {
+            initPCA9685()
+        }
+        const minInput = 0;
+        const maxInput = 355;//理论值为360
+        const minOutput = 500;
+        const maxOutput = 2500;
+        const v_us = ((degree - minInput) / (maxInput - minInput)) * (maxOutput - minOutput) + minOutput;
+
+        let value = v_us * 4096 / 20000
+        setPwm(index + 7, 0, value)
+    }
+
+    //% blockId=robotbit_gservo5kg_motor block="GeekServo5KG_MotorEN|%index|speed %speed"
+    //% group="Servo" weight=58
+    //% speed.min=-255 speed.max=255
+    //% name.fieldEditor="gridpicker" name.fieldOptions.columns=4
+    export function GeekServo5KG_Motor(index: Servos, speed: number): void { //5KG的电机模式 3000-5000 4000是回中
+        if (!initialized) {
+            initPCA9685()
+        }
+        const minInput = -255;
+        const maxInput = 255;
+        const minOutput = 5000;
+        const maxOutput = 3000;
+
+        const v_us = ((speed - minInput) / (maxInput - minInput)) * (maxOutput - minOutput) + minOutput;
+        let value = v_us * 4096 / 20000
+        setPwm(index + 7, 0, value)
+    }	
+	
+
+    //% blockId=robotbit_stepper_degree block="Stepper 28BYJ-48|%index|degree %degree"
+    //% group="Motor" weight=54
     export function StepperDegree(index: Steppers, degree: number): void {
         if (!initialized) {
             initPCA9685()
@@ -277,15 +337,15 @@ namespace microbit_test {
     }
 
 
-    //% blockId=magicbit_stepper_turn block="Stepper 28BYJ-48|%index|turn %turn"
-    //% weight=90
+    //% blockId=robotbit_stepper_turn block="Stepper 28BYJ-48|%index|turn %turn"
+    //% group="Motor" weight=53
     export function StepperTurn(index: Steppers, turn: Turns): void {
         let degree = turn;
         StepperDegree(index, degree);
     }
 
-    //% blockId=magicbit_stepper_dual block="Dual Stepper(Degree) |STPM1 %degree1| STPM2 %degree2"
-    //% weight=89
+    //% blockId=robotbit_stepper_dual block="Dual Stepper(Degree) |M1 %degree1| M2 %degree2"
+    //% group="Motor" weight=52
     export function StepperDual(degree1: number, degree2: number): void {
         if (!initialized) {
             initPCA9685()
@@ -311,8 +371,8 @@ namespace microbit_test {
      * @param distance Distance to move in cm; eg: 10, 20
      * @param diameter diameter of wheel in mm; eg: 48
     */
-    //% blockId=magicbit_stpcar_move block="Car Forward|Distance(cm) %distance|Wheel Diameter(mm) %diameter"
-    //% weight=88
+    //% blockId=robotbit_stpcar_move block="Car Forward|Distance(cm) %distance|Wheel Diameter(mm) %diameter"
+    //% group="Motor" weight=51
     export function StpCarMove(distance: number, diameter: number): void {
         if (!initialized) {
             initPCA9685()
@@ -331,8 +391,8 @@ namespace microbit_test {
      * @param diameter diameter of wheel in mm; eg: 48
      * @param track track width of car; eg: 125
     */
-    //% blockId=magicbit_stpcar_turn block="Car Turn|Degree %turn|Wheel Diameter(mm) %diameter|Track(mm) %track"
-    //% weight=87
+    //% blockId=robotbit_stpcar_turn block="Car Turn|Degree %turn|Wheel Diameter(mm) %diameter|Track(mm) %track"
+    //% group="Motor" weight=50
     //% blockGap=50
     export function StpCarTurn(turn: number, diameter: number, track: number): void {
         if (!initialized) {
@@ -346,8 +406,8 @@ namespace microbit_test {
         MotorStopAll()
     }
 
-    //% blockId=magicbit_motor_run block="Motor|%index|speed %speed"
-    //% weight=85
+    //% blockId=robotbit_motor_run block="Motor|%index|speed %speed"
+    //% group="Motor" weight=59
     //% speed.min=-255 speed.max=255
     //% name.fieldEditor="gridpicker" name.fieldOptions.columns=4
     export function MotorRun(index: Motors, speed: number): void {
@@ -374,18 +434,18 @@ namespace microbit_test {
         }
     }
 
+
     /**
      * Execute two motors at the same time
-     * @param motor1 First Motor; eg: M1, M2
+     * @param motor1 First Motor; eg: M1A, M1B
      * @param speed1 [-255-255] speed of motor; eg: 150, -150
-     * @param motor2 Second Motor; eg: M3, M4
+     * @param motor2 Second Motor; eg: M2A, M2B
      * @param speed2 [-255-255] speed of motor; eg: 150, -150
     */
-    //% blockId=magicbit_motor_dual block="Motor|%motor1|speed %speed1|%motor2|speed %speed2"
-    //% weight=84
+    //% blockId=robotbit_motor_dual block="Motor|%motor1|speed %speed1|%motor2|speed %speed2"
+    //% group="Motor" weight=58
     //% speed1.min=-255 speed1.max=255
     //% speed2.min=-255 speed2.max=255
-    //% inlineInputMode=inline
     //% name.fieldEditor="gridpicker" name.fieldOptions.columns=4
     export function MotorRunDual(motor1: Motors, speed1: number, motor2: Motors, speed2: number): void {
         MotorRun(motor1, speed1);
@@ -394,12 +454,12 @@ namespace microbit_test {
 
     /**
      * Execute single motors with delay
-     * @param index Motor Index; eg: M1, M2, M3, M4
+     * @param index Motor Index; eg: M1A, M1B, M2A, M2B
      * @param speed [-255-255] speed of motor; eg: 150, -150
      * @param delay seconde delay to stop; eg: 1
     */
-    //% blockId=magicbit_motor_rundelay block="Motor|%index|speed %speed|delay %delay|s"
-    //% weight=81
+    //% blockId=robotbit_motor_rundelay block="Motor|%index|speed %speed|delay %delay|s"
+    //% group="Motor" weight=57
     //% speed.min=-255 speed.max=255
     //% name.fieldEditor="gridpicker" name.fieldOptions.columns=4
     export function MotorRunDelay(index: Motors, speed: number, delay: number): void {
@@ -408,14 +468,16 @@ namespace microbit_test {
         MotorRun(index, 0);
     }
 
-    //% blockId=magicbit_stop block="Motor Stop|%index|"
-    //% weight=80
+
+
+    //% blockId=robotbit_stop block="Motor Stop|%index|"
+    //% group="Motor" weight=56
     export function MotorStop(index: Motors): void {
         MotorRun(index, 0);
     }
 
-    //% blockId=magicbit_stop_all block="Motor Stop All"
-    //% weight=79
+    //% blockId=robotbit_stop_all block="Motor Stop All"
+    //% group="Motor" weight=55
     //% blockGap=50
     export function MotorStopAll(): void {
         if (!initialized) {
@@ -426,23 +488,126 @@ namespace microbit_test {
         }
     }
 
-	//% blockId="motorbit_rus04" block="On-board Ultrasonic part %index show color %rgb effect %effect" 
-	//% weight=78
-	export function motorbit_rus04(index: RgbUltrasonics, rgb: RgbColors, effect: ColorEffect): void {
-	    sensors.board_rus04_rgb(DigitalPin.P16, 4, index, rgb, effect);
-	}
-    
-	//% blockId=Ultrasonic_reading_distance block="On-board Ultrasonic reading distance"
-	//% weight=77
-	export function Ultrasonic_reading_distance(): number {
-	    return sensors.Ultrasonic(DigitalPin.P2);
-	}
+    //% blockId=robotbit_matrix_draw block="Matrix Draw|X %x|Y %y"
+    //% group="Modules" weight=44
+    export function MatrixDraw(x: number, y: number): void {
+        if (!initializedMatrix) {
+            matrixInit();
+            initializedMatrix = true;
+        }
+        x = Math.round(x)
+        y = Math.round(y)
+        
+        let idx = y * 2 + Math.idiv(x, 8);
+        
+        let tmp = matBuf[idx + 1];
+        tmp |= (1 << (x % 8));
+        matBuf[idx + 1] = tmp;
+    }
 
+    //% blockId=robotbit_matrix_refresh block="Matrix Refresh"
+    //% group="Modules" weight=43
+    export function MatrixRefresh(): void {
+        if (!initializedMatrix) {
+            matrixInit();
+            initializedMatrix = true;
+        }
+        matrixShow();
+    }
 
-	//% blockId=Setting_the_on_board_lights block="Setting the on-board lights %index color %rgb Effect %effect"
-	//% weight=76
-	export function Setting_the_on_board_lights(offset: Offset,rgb: RgbColors, effect: rgb_ColorEffect): void {
-	 sensors.board_rus04_rgb(DigitalPin.P16, offset, 0, rgb, effect);
-	}
-	
+	/*
+    //% blockId=robotbit_matrix_clean block="Matrix Clean|X %x|Y %y"
+    //% group="Servo" weight=68
+    export function MatrixClean(x: number, y: number): void {
+        if (!initializedMatrix) {
+            matrixInit();
+            initializedMatrix = true;
+        }
+        let idx = y * 2 + x / 8;
+		// todo: bitwise not throw err 
+        matBuf[idx + 1] &=~(1 << (x % 8));
+        matrixShow();
+    }
+	*/
+
+    //% blockId=robotbit_matrix_clear block="Matrix Clear"
+    //% group="Modules" weight=42
+    //% blockGap=50
+    export function MatrixClear(): void {
+        if (!initializedMatrix) {
+            matrixInit();
+            initializedMatrix = true;
+        }
+        for (let i = 0; i < 16; i++) {
+            matBuf[i + 1] = 0;
+        }
+        matrixShow();
+    }
+
+    /**
+     * signal pin
+     * @param pin singal pin; eg: DigitalPin.P1
+     */
+    //% blockId=robotbit_rgbultrasonic block="Ultrasonic(with RGB)|pin %pin"
+    //% group="Modules" weight=41
+    export function RgbUltrasonic(pin: DigitalPin): number {
+        pins.setPull(pin, PinPullMode.PullNone);
+        pins.digitalWritePin(pin, 0);
+        control.waitMicros(2);
+        pins.digitalWritePin(pin, 1);
+        control.waitMicros(10);
+        pins.digitalWritePin(pin, 0);
+
+        // read pulse
+        let d = pins.pulseIn(pin, PulseValue.High, 25000);
+        let ret = d;
+        // filter timeout spikes
+        if (ret == 0 && distanceBuf != 0) {
+            ret = distanceBuf;
+        }
+        distanceBuf = d;   
+
+        return Math.floor(ret * 9 / 6 / 58);
+    }
+
+    /**
+     * signal pin
+     * @param pin singal pin; eg: DigitalPin.P1
+     * @param unit desired conversion unit
+     */
+    //% blockId=robotbit_holeultrasonicver block="Ultrasonic(with LEGO Hole)|pin %pin|unit %unit"
+    //% group="Modules" weight=40
+    export function HoleUltrasonic(pin: DigitalPin, unit: ValueUnit): number {
+        pins.setPull(pin, PinPullMode.PullNone);
+        // pins.setPull(pin, PinPullMode.PullDown);
+        pins.digitalWritePin(pin, 0);
+        control.waitMicros(2);
+        pins.digitalWritePin(pin, 1);
+        control.waitMicros(10);
+        pins.digitalWritePin(pin, 0);
+        pins.setPull(pin, PinPullMode.PullUp);
+
+        // read pulse
+        let d = pins.pulseIn(pin, PulseValue.High, 30000);
+        let ret = d;
+        // filter timeout spikes
+        if (ret == 0 && distanceBuf != 0) {
+                ret = distanceBuf;
+        }
+        distanceBuf = d;
+        pins.digitalWritePin(pin, 0);
+        basic.pause(15)
+	    if (parseInt(control.hardwareVersion()) == 2) {
+            d = ret *10 /58;
+        }
+        else{
+            // return Math.floor(ret / 40 + (ret / 800));
+            d = ret * 15 / 58;
+        }
+        switch (unit) {
+            case ValueUnit.Millimeter: return Math.floor(d)
+            case ValueUnit.Centimeters: return Math.floor(d/10)
+            default: return d;
+        }
+    }
 }
